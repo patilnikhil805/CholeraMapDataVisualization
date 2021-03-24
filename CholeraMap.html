@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>D3 Page Template</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.3/moment.min.js"></script>
+        <script src='https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.13/d3.js'></script>
+        <script src='d3/d3.slider.js'></script>
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+                integrity="sha256-k2WSCIexGzOj3Euiig+TlR8gA0EmPjuc79OEeY5L45g="
+                crossorigin="anonymous"></script>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-zoom/1.5.0/d3-zoom.min.js" ></script>  
+                <link rel="stylesheet" href="d3/d3.slider.css">
+                        <link rel="stylesheet" href="d3/d3.slider.css">
+    <style>
+        line {
+            stroke: black;
+            stroke-width: .5px;
+        }
+        .d3-slider-handle{
+width: 1em;
+margin-left: 0em;
+        }
+        .deathPoint-m {
+          fill : rgb(27, 158, 119);
+          border-color: black;
+          border-width: .5px;
+        }
+        .deathPoint-f {
+          fill : rgb(231, 41, 138);
+        }
+        .deathPoint {
+          fill:#e0e0e0;
+        }
+.column-selected {
+  border-width: 4px;
+  border-color: red;
+}
+        div.tooltip { 
+    position: absolute;     
+    text-align: center;     
+        
+    padding: 2px;       
+    font: 12px sans-serif;    
+    background: lightsteelblue; 
+    border: 0px;    
+    border-radius: 8px;     
+    pointer-events: none;     
+}
+
+    </style>
+    <style type="text/css">
+.tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
+.tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;}
+.tg .tg-tzxn{background-color:#1b9e77;vertical-align:top}
+.tg .tg-u012{background-color:#e7298a;vertical-align:top}
+.tg .tg-yw4l{vertical-align:top}
+.tg .tg-8j8s{background-color:#1f78b4;color:#1f78b4;vertical-align:top}
+</style>
+</head>
+<body>
+<div id='chart'></div>
+<div id='sliderContainr'><div id='slider' style='width:970px'></div></div>
+<div id='sliderRange' style='height:20px;margin-top:10px;width:990px'>
+ <div id='start' style='width:50px;text-align:left;display:inline-block;'>19-Aug</div><div style="width:880px !important;text-align:center;display:inline-block;"> View Deaths between <span id='slider3textmin'></span> and <span id='slider3textmax'></span></div>
+ <div id='end' style='width:60px;text-align:right;display:inline;'>29-Sept</div>
+</div>
+<div>
+<div id='map' style='width:970px;height:600px;text-align:center;display:inline-block'></div>
+<div style='display:inline-block;text-align:top;height:600px'><table class="tg">
+  <tr>
+    <th class="tg-yw4l">Color</th>
+    <th class="tg-yw4l">Location of</th>
+  </tr>
+  <tr>
+    <td class="tg-8j8s"></td>
+    <td class="tg-yw4l">Water Pumps</td>
+  </tr>
+  <tr>
+    <td class="tg-tzxn"></td>
+    <td class="tg-yw4l">Death of Male person</td>
+  </tr>
+  <tr>
+    <td class="tg-u012"></td>
+    <td class="tg-yw4l">Death of Female Person</td>
+  </tr>
+</table></div>
+</div>
+<div id='doc'><h4>Documentation</h4>
+<a href="https://drive.google.com/open?id=1V871XDhmbudFaR1YX6GMI-BDBQ6MZOx83t8T8zVkOrs"
+>Visualization Design Process Document : https://drive.google.com/open?id=1V871XDhmbudFaR1YX6GMI-BDBQ6MZOx83t8T8zVkOrs</a></div>
+<div id='vid'><h4>Video</h4>
+<a href="https://youtu.be/XmE65wh2wRU"
+>Video Overview : https://youtu.be/XmE65wh2wRU</a></div>
+<script type="text/javascript">
+var w = 600;
+var h = 600;
+var deathData = [];
+var format = d3.time.format("%d-%b-%Y");
+var maxDate ;
+var minDate;
+var svgContainer;
+var deathDays = [];
+var tooltipDiv;
+var slidr;
+var ageRange = ["0 - 10", "11 - 20", "21 - 40", "41 - 60", "61 - 80", "> 81"];
+        // Plot Street Map
+        d3.tsv("data/streetCoordinates.tsv" + '?' + Math.floor(Math.random() * 1000),
+             function (data) {
+                 console.log(data);
+                 // Plot the 1. street map
+                 visualizeMap(data);
+             });
+
+            // Plot the complete street map
+            function visualizeMap(streetCoordinates) {
+
+            scale = d3.scale.linear()
+                                  .domain([3, 19])
+                                  .range([-20, 570]);
+            svgContainer = d3.select("#map").append("svg")
+                                               .attr("width", 600)
+                                               .attr("height", 600)
+                                               .attr('align', 'centre')
+                                               .style("border", "1px solid black");
+
+            for (var i = 0; i <= streetCoordinates.length - 1; i++) {
+                var nosOfPoint = streetCoordinates[i].b;
+                i++;
+                for (var j = 0; j < nosOfPoint - 1; i++, j++) {
+                    svgContainer.append("line")
+                      .attr("x1", scale(+streetCoordinates[i].a))
+                      .attr("y1", h - scale(+streetCoordinates[i].b))
+                      .attr("x2", scale(+streetCoordinates[i + 1].a))
+                      .attr("y2", h - scale(+streetCoordinates[i + 1].b));
+                };
+            };
+
+/*svgContainer.append("rect")
+    .attr("fill", "none")
+    .attr("pointer-events", "all")
+    .attr("width", w)
+    .attr("height", h)
+    .call(d3.zoom()
+        .scaleExtent([1, 8])
+        .on("zoom", zoom));
+
+function zoom() {debugger;
+  g.attr("transform", d3.event.transform);
+}*/
+            // Plot the Pumps
+             d3.tsv("data/pumps.tsv" + '?' + Math.floor(Math.random() * 1000),
+                 function (data) {
+                     console.log(data);
+                     visualizePumps(data);
+                 });
+ tooltipDiv = d3.select("body").append("div") 
+    .attr("class", "tooltip")       
+    .style("opacity", 0);
+              d3.tsv("data/deathAgeMF.tsv"+ '?' + Math.floor(Math.random() * 1000),
+                function (data) {
+                     console.log(data);
+                     deathData = data;
+                     visualizeDeaths(data,1);
+                      d3.tsv("data/deathDays.tsv"+ '?' + Math.floor(Math.random() * 1000),
+                function (data) {
+                     console.log(data);
+                     mapDeathDates(data);
+                     deathDays = data;
+                       
+                        
+createSlider();
+createChart();
+d3.selectAll("rect").on("click",function (d,e) { columnClick(d,e);
+})
+                 });
+                 });
+
+              
+
+        
+    }
+
+      function visualizePumps (pumpsLocation) {
+                 svgContainer.selectAll("circle")
+               .data(pumpsLocation)
+               .enter()
+               .append("circle")
+               .attr(
+                {   cx : function(d) {  return scale(d.x);    },
+                    cy : function(d) {  return h - scale(d.y);   },
+                    r  : function(d) {  return 4;
+                    //Math.sqrt(h - d[1]);});
+                                        },
+                    fill : function (d) {   return "rgb(31, 120, 180)";}
+             });
+           }
+
+     function mapDeathDates (deathDays)
+           {
+            var nosCount = 0;
+              for (var i = 0; i < deathDays.length ; i++) {
+                  for (var j = 0; j < deathDays[i].Nos; j++) {
+                  deathData[nosCount + j].deathDay = format.parse(deathDays[i].Date + "-1854");
+                  deathData[nosCount + j].deathDayNos = i;
+                };
+                  nosCount += +deathDays[i].Nos;
+              };
+              maxDate = d3.max(deathData, function(d) { return d.deathDay;} );
+                       minDate = d3.min(deathData, function(d) { return d.deathDay;} );
+                       console.log('death data');
+                console.log(deathData);
+           }
+
+ function visualizeDeaths (deathLocations, isActive) {
+              svgContainer.selectAll("circle")
+               .data(deathLocations)
+               .enter()
+               .append("circle")
+               .attr(
+                {   cx : function(d) {  return scale(d.long);    },
+                    cy : function(d) {  return h - scale(d.lat);   },
+                    r  : function(d) {  return 2;
+                                        },
+                    class : function(d) { var cls = "";
+                    if(isActive == 1)
+                    {
+                        cls = d.sex==1 ? "deathPoint-f":"deathPoint-m";
+                    } 
+                    else{
+                      cls = "deathPoint";
+                    }
+                    return cls;
+                    ;}
+             })
+               .on("mouseover", function(d) {   
+            tooltipDiv.transition()    
+                .duration(200)    
+                .style("opacity", .9);    
+
+            tooltipDiv .html("Death Location : " + d.long +"," + d.lat + "<br/>" 
+              +"Age : " +  ageRange[d.age] + "<br/>"  + "Sex : " + (d.sex == 1 ? "Female" : "Male"))  
+                .style("left", (d3.event.pageX) + "px")   
+                .style("top", (d3.event.pageY - 28) + "px");  
+            })          
+        .on("mouseout", function(d) {   
+            tooltipDiv.transition()    
+                .duration(500)    
+                .style("opacity", 0); 
+        });;
+         }
+          
+         
+         function createSlider () {
+          tickFormatter = function (d) {
+            return new Date(format.parse(d.Date +"-1854")).Day;
+            // body...
+          };
+          var axs = d3.svg.axis().ticks(42).tickFormat(tickFormatter);
+          slidr = d3.slider()
+  .axis(axs)
+  .min(0)
+  .max(deathDays.length-1)
+  .step(1)
+  .value( [ 0, deathDays.length-1 ] )
+  .on("slide", function(evt, value) {
+   sliderChangeEvent(value);
+         });
+//create slider
+  d3.select('#slider').call(slidr);
+   d3.select('#slider3textmin').text(deathDays[0].Date);
+    d3.select('#slider3textmax').text(deathDays[deathDays.length-1].Date);
+//$('.tick').remove();
+
+}
+
+function  sliderChangeEvent(value)
+{
+  resetChart();
+  var minRangeDate = format.parse(deathDays[value[ 0 ]].Date + "-1854");
+  var maxRangeDate = format.parse(deathDays[value[ 1 ]].Date + "-1854");
+   d3.selectAll('d3-slider-handle').attr('margin-left','0em');
+    d3.select('#slider3textmin').text(deathDays[value[ 0 ]].Date);
+    d3.select('#slider3textmax').text(deathDays[value[ 1 ]].Date);
+svgContainer.selectAll('circle.deathPoint-m').remove();
+svgContainer.selectAll('circle.deathPoint-f').remove();
+svgContainer.selectAll('circle.deathPoint').remove();
+var deathsInRange = [];
+var deathsOutOfRange = [];
+$(deathDays).each(function  (i,d) { 
+debugger;
+if(i >= value[0] && i<=value[1])
+{
+  $(".bar-"+i).addClass("column-selected");
+ $(".bar-"+i).attr("fill","red");
+}
+});
+         svgContainer.selectAll("circle")
+               .data(deathData)
+               .enter()
+               .append("circle")
+               .attr(
+                {   cx : function(d) {  return scale(d.long);    },
+                    cy : function(d) {  return h - scale(d.lat);   },
+                    r  : function(d) {  return 2;
+                                        },
+                    class : function(d) { 
+                      if(d.deathDay >= minRangeDate && d.deathDay <= maxRangeDate)
+                      {
+                        return d.sex==1 ? "deathPoint-f":"deathPoint-m";
+                      }
+                      else
+                      {
+                        return "deathPoint";
+                      }
+                      }
+             })
+               .on("mouseover", function(d) {   
+            tooltipDiv.transition()    
+                .duration(200)    
+                .style("opacity", .9);    
+            tooltipDiv .html("Death Location : " + d.long +"," + d.lat + "<br/>" 
+              +"Age : " +  ageRange[d.age] + "<br/>"  + "Sex : " + (d.sex == 1 ? "Female" : "Male"))  
+                .style("left", (d3.event.pageX) + "px")   
+                .style("top", (d3.event.pageY - 28) + "px");  
+            })          
+        .on("mouseout", function(d) {   
+            tooltipDiv.transition()    
+                .duration(500)    
+                .style("opacity", 0); 
+        });;
+}
+
+function createChart () {
+var w = 1000;
+      var h = 250;
+ maxNos = d3.max(deathDays, function(d) { return +d.Nos;} );
+      var xScale = d3.scale.linear()
+              .domain(d3.range(deathDays.length))
+              .rangeRound([0, w]);
+      var yScale = d3.scale.linear()
+              .domain([0, maxNos])
+              .range([0, h-20]);
+      //Create bars
+      d3.select('#chart').append('svg').attr({width : w, height : h})
+.selectAll('rect')
+      .data(deathDays)
+    .enter().append("rect")
+                 .attr("x", function(d, i) {
+            return i*20 + 3*i;
+         })
+         .attr("y", function(d) {
+            return h - yScale(+d.Nos);
+         })
+         .attr("width", 20)
+         .attr("height", function(d) {
+            return yScale(+d.Nos);
+         })
+           .attr("class",function (d,i) { return "bar-"+i ;
+         })
+           .attr("nos",function (d,i) {
+            return d.Nos;
+           })
+         .attr("fill", function(d) {
+          return "rgb(0, 0, " + Math.round(+d.Nos * 10) + ")";
+         });
+
+      //Create labels
+     d3.select('#chart').selectAll('svg').selectAll("text")
+         .data(deathDays)
+         .enter()
+         .append("text")
+         .text(function(d) {
+            return +d.Nos;
+         })
+         .attr("text-anchor", "middle")
+         .attr("x", function(d, i) {
+            return (i*20 + 3*i) + (20 / 2);
+         })
+         .attr("y", function(d) {
+            return h - yScale(+d.Nos) -5;
+         })
+         .attr("font-family", "sans-serif")
+         .attr("font-size", "11px")
+         .attr("fill", "black");
+      
+}
+
+function resetChart () {
+  debugger;
+  $("rect.column-selected").removeClass("column-selected");
+  $("rect").each(function  (d) {
+  $(this).attr("fill","rgb(0, 0, " + Math.round(+$(this).attr("nos") * 10)+ ")");
+});
+}
+
+function columnClick (d,e) {
+  var bar = d3.select(".bar-"+e);
+  resetChart();
+ 
+   var axs = d3.svg.axis().ticks(42).tickFormat(tickFormatter);
+   $("rect.column-selected").attr("fill","rgb(0, 0, " + Math.round(+d.Nos * 10) + ")");
+
+
+$('#slider').empty();
+$("#slider").attr("style","width:970px");
+ slidr = d3.slider()
+  .axis(axs)
+  .min(0)
+  .max(deathDays.length-1)
+  .step(1)
+  .value([+e,+e])
+  .on("slide", function(evt, value) {
+   sliderChangeEvent(value);
+         });
+//create slider
+  d3.select('#slider').call(slidr);
+   d3.select('#slider3textmin').text(deathDays[0].Date);
+    d3.select('#slider3textmax').text(deathDays[deathDays.length-1].Date);
+sliderChangeEvent([+e,+e]);
+ $(".bar-"+e).addClass("column-selected");
+ bar.attr("fill","red");
+}
+    </script>
+
+</body>
+
+</html>

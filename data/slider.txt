@@ -1,0 +1,32 @@
+ debugger;
+          var sliderScale = d3.time.scale().domain([minDate, maxDate]).range([0,800]);
+var secondsInDay = 60 * 60 * 24;
+/*
+d3.select('#slider2').call(d3.slider()
+  //.axis(true)
+  .min(minDate).max(maxDate).value([new Date('23-Aug-1854'), new Date('29-Aug-1854')]).step(secondsInDay)
+  .on("slide", function(evt, value) {
+  })
+);
+*/
+var datesList = [];
+for (var i =  0 ; i < deathDays.length ; i++) {
+  datesList.push(format.parse(deathDays[i].Date + "-1854"));
+};
+debugger;
+d3.select('#slider2').call(
+      d3.slider()
+      .scale(sliderScale)
+      .axis(  d3.svg.axis())
+      .value([new Date('23-Aug-1854'), new Date('29-Aug-1854')])
+
+      .on("slide", function(evt, value) {
+                                var sliderScale = d3.time.scale().domain([minDate, maxDate]);
+                                debugger;
+                                }));
+
+
+/*
+debugger;
+d3.select('#slider2').call(d3.slider().scale(d3.scale.ordinal().domain(datesList).rangePoints([0, 1], 0.5)).axis( d3.svg.axis() ).snap(true).value(['21-Aug','25-Aug']));
+*/
